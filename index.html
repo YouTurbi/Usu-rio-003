@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="shortcut icon" href="favicon_youturbi_2048.png" type="image/x-icon">
+
+  <title>Youturbi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #0f0f0f;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .box {
+      background: #1c1c1c;
+      padding: 30px;
+      border-radius: 14px;
+      width: 90%;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 0 25px rgba(0,0,0,.6);
+      position: relative;
+    }
+
+    h2 {
+      color: #ff0000;
+      margin-bottom: 8px;
+    }
+
+    p {
+      font-size: 14px;
+      opacity: .85;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      margin-top: 15px;
+      border-radius: 10px;
+      border: none;
+      font-size: 15px;
+      outline: none;
+      text-align: center;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 12px;
+      border-radius: 10px;
+      border: none;
+      background: #ff0000;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      transition: .2s;
+    }
+
+    button:hover {
+      background: #e60000;
+    }
+
+    .hidden { display: none; }
+
+    .result-box {
+      margin-top: 20px;
+      background: #2a2a2a;
+      padding: 14px;
+      border-radius: 12px;
+    }
+
+    .result-link {
+      background: #111;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      word-break: break-all;
+      color: #4caf50;
+      margin-bottom: 10px;
+    }
+
+    .copied {
+      font-size: 13px;
+      color: #4caf50;
+      margin-top: 6px;
+      display: none;
+    }
+
+    .offer {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      font-size: 13px;
+      opacity: .75;
+    }
+
+    .offer a {
+      color: #25D366;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .offer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<div class="box">
+
+  <div id="auth">
+    <h2>Youturbi🚀</h2>
+    <p>Gere links que abrem direto no app</p>
+
+    <input id="keyInput" placeholder="Digite sua senha de acesso">
+    <button onclick="ativar()">Entrar</button>
+
+    <div class="offer">
+      Acesso ilimitado por <b>30 dias</b> — <b>R$ 19,90</b><br>
+      WhatsApp: <a href="https://wa.me/5519981930881" target="_blank">
+        Clique para adquirir
+      </a>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <h2>Youturbi🚀</h2>
+
+    <input id="yt" placeholder="Cole o link (YouTube, TikTok ou Spotify)">
+    <button onclick="gerar()">Gerar link</button>
+
+    <div class="result-box hidden" id="resultBox">
+      <div class="result-link" id="res"></div>
+      <button onclick="copiar()">Copiar link</button>
+      <div class="copied" id="copied">Link copiado!</div>
+    </div>
+
+    <div class="offer">
+      Acesso ilimitado por <b>30 dias</b> — <b>R$ 19,90</b><br>
+      WhatsApp: <a href="https://wa.me/5519981930881" target="_blank">
+        Falar comigo
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const ACCESS_KEY = "YT-UNLIM-2026-02";
+
+function ativar() {
+  if (keyInput.value.trim() !== ACCESS_KEY) {
+    alert("Senha inválida");
+    return;
+  }
+  auth.classList.add("hidden");
+  app.classList.remove("hidden");
+}
+
+function extrairInfo(url) {
+  try {
+    const u = new URL(url);
+
+    // YouTube
+    if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
+      if (u.pathname.includes("/shorts/"))
+        return { platform: "yt_shorts", id: u.pathname.split("/shorts/")[1] };
+
+      if (u.searchParams.get("v"))
+        return { platform: "yt_video", id: u.searchParams.get("v") };
+
+      if (u.hostname.includes("youtu.be"))
+        return { platform: "yt_video", id: u.pathname.slice(1) };
+
+      return { platform: "yt_channel", path: u.pathname };
+    }
+
+    // TikTok (extrai ID corretamente)
+    if (u.hostname.includes("tiktok.com")) {
+      const match = u.pathname.match(/\/video\/(\d+)/);
+      if (match) {
+        return { platform: "tiktok", id: match[1], fallback: u.href };
+      }
+      return { platform: "tiktok", fallback: u.href };
+    }
+
+    // Spotify
+    if (u.hostname.includes("spotify.com")) {
+      return { platform: "spotify", url: u.href };
+    }
+
+  } catch {}
+
+  return null;
+}
+
+function gerar() {
+  const data = extrairInfo(yt.value.trim());
+  if (!data) {
+    alert("Link inválido");
+    return;
+  }
+
+  let link = `${location.origin}${location.pathname}?platform=${data.platform}`;
+
+  if (data.id) link += `&id=${data.id}`;
+  if (data.path) link += `&path=${encodeURIComponent(data.path)}`;
+  if (data.url) link += `&url=${encodeURIComponent(data.url)}`;
+  if (data.fallback) link += `&fallback=${encodeURIComponent(data.fallback)}`;
+
+  res.innerText = link;
+  resultBox.classList.remove("hidden");
+  copied.style.display = "none";
+}
+
+function copiar() {
+  navigator.clipboard.writeText(res.innerText);
+  copied.style.display = "block";
+}
+
+// Redirecionamento
+const p = new URLSearchParams(location.search);
+const platform = p.get("platform");
+const id = p.get("id");
+const path = p.get("path");
+const url = p.get("url");
+const fallback = p.get("fallback");
+const ua = navigator.userAgent;
+
+if (platform === "tiktok") {
+  if (id && /Android|iPhone|iPad/i.test(ua)) {
+    location.href = `snssdk1233://aweme/detail/${id}`;
+    setTimeout(() => {
+      location.href = fallback;
+    }, 800);
+  } else {
+    location.href = fallback;
+  }
+}
+
+if (platform === "spotify" && url) {
+  const clean = decodeURIComponent(url);
+  if (/Android|iPhone|iPad/i.test(ua))
+    location.href = clean.replace("https://open.spotify.com","spotify://");
+  else
+    location.href = clean;
+}
+
+if (platform && platform.startsWith("yt")) {
+  let finalUrl =
+    platform === "yt_channel"
+      ? `https://www.youtube.com${decodeURIComponent(path)}`
+      : platform === "yt_shorts"
+      ? `https://www.youtube.com/shorts/${id}`
+      : `https://www.youtube.com/watch?v=${id}`;
+
+  if (/Android/i.test(ua))
+    location.href = `intent://${finalUrl.replace("https://","")}#Intent;package=com.google.android.youtube;scheme=https;end`;
+  else if (/iPhone|iPad|iPod/i.test(ua))
+    location.href = `youtube://${finalUrl.replace("https://www.youtube.com/","")}`;
+  else
+    location.href = finalUrl;
+}
+</script>
+
+</body>
+</html>
+
